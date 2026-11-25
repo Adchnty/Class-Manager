@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشاهده مدیریت کلاس</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap');
+
+        :root {
+            --bg: #0f172a; --surface: #1e293b; --border: #334155;
+            --primary: #3b82f6; --success: #10b981; --warning: #f59e0b;
+            --danger: #ef4444; --text: #f8fafc; --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Vazirmatn', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 900px; position: relative; }
+
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* منو */
+        .main-menu-header { text-align: center; margin-bottom: 30px; margin-top: 20px; }
+        .main-menu-header h1 { color: var(--primary); font-size: 26px; margin-bottom: 10px; }
+        .main-menu-header p { color: var(--text-muted); font-size: 14px; }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .menu-card { background-color: var(--surface); border: 1px solid var(--border); padding: 20px; border-radius: 16px; cursor: pointer; display: flex; align-items: center; gap: 15px; transition: 0.2s; }
+        .menu-card:hover { background-color: rgba(255,255,255,0.05); border-color: var(--primary); transform: translateY(-3px); }
+        .menu-icon { width: 50px; height: 50px; background-color: rgba(59, 130, 246, 0.15); color: var(--primary); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 22px; }
+        .menu-text h3 { font-size: 16px; margin-bottom: 5px; }
+        .menu-text p { font-size: 12px; color: var(--text-muted); }
+
+        /* صفحات داخلی */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .btn-back { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .btn-back:hover { background-color: var(--border); }
+        .page-title { font-size: 18px; color: white; }
+
+        /* جدول */
+        .table-container { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; text-align: center; background-color: var(--surface); min-width: 500px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        th { color: var(--text-muted); font-weight: 400; background-color: rgba(0,0,0,0.3); }
+        .empty-state { text-align: center; padding: 30px; color: var(--text-muted); }
+
+        /* استایل‌های عمومی لیست‌ها */
+        .session-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); }
+        .session-info h4 { font-size: 15px; margin-bottom: 5px; color: var(--text); }
+        .session-info p { font-size: 12px; color: var(--text-muted); }
+
+        /* استایل پروفایل دانش‌آموز */
+        .student-profile { text-align: center; margin-bottom: 30px; background: var(--surface); padding: 20px; border-radius: 16px; border: 1px solid var(--border); }
+        .student-profile h2 { color: var(--primary); font-size: 24px; margin-bottom: 5px; }
+        .student-profile p { color: var(--text-muted); font-size: 14px; }
+        
+        .profile-section { background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .profile-section h3 { font-size: 16px; margin-bottom: 15px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+        /* اسکرول بار */
+        #student-info-content::-webkit-scrollbar { width: 8px; }
+        #student-info-content::-webkit-scrollbar-track { background: var(--bg); border-radius: 10px; }
+        #student-info-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        /* استایل‌های وضعیت در جدول‌ها (برای رنگ‌بندی) */
+        .status-pass { color: var(--success); font-weight: bold; }
+        .status-fail { color: var(--danger); font-weight: bold; }
+        .status-warn { color: var(--warning); font-weight: bold; }
+        .status-muted { color: var(--text-muted); }
+
+        /* استایل فوتر */
+        /* فوتر فقط در صفحه اصلی نمایش داده شود */
+        .footer { display: none; }
+        #page-menu.active ~ .footer { display: block; }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .footer .creator-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-top: 5px;
+            display: block;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+        .footer .school-info {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- صفحه اصلی -->
+        <div id="page-menu" class="page active">
+            <div class="main-menu-header">
+                <h1><i class="fa-solid fa-eye"></i> مشاهده وضعیت کلاس</h1>
+                <p>نسخه نمایشی (فقط خواندنی)</p>
+            </div>
+
+            <div class="menu-grid">
+                <div class="menu-card" onclick="goToPage('students')">
+                    <div class="menu-icon"><i class="fa-solid fa-users"></i></div>
+                    <div class="menu-text"><h3>لیست دانش‌آموزان</h3><p>مشاهده اسامی و اطلاعات</p></div>
+                </div>
+                <div class="menu-card" onclick="goToPage('homework')">
+                    <div class="menu-icon" style="color: var(--warning); background-color: rgba(245, 158, 11, 0.15);"><i class="fa-solid fa-book"></i></div>
+                    <div class="menu-text"><h3>تکالیف</h3><p>مشاهده وضعیت تمرین‌ها</p></div>
+                </div>
+                <div class="menu-card" onclick="goToPage('attendance')">
+                    <div class="menu-icon" style="color: var(--success); background-color: rgba(16, 185, 129, 0.15);"><i class="fa-solid fa-clipboard-user"></i></div>
+                    <div class="menu-text"><h3>حضور و غیاب</h3><p>مشاهده لیست جلسات</p></div>
+                </div>
+                <div class="menu-card" onclick="goToPage('quizzes')">
+                    <div class="menu-icon" style="color: #a855f7; background-color: rgba(168, 85, 247, 0.15);"><i class="fa-solid fa-file-pen"></i></div>
+                    <div class="menu-text"><h3>کوییزها</h3><p>مشاهده نمرات</p></div>
+                </div>
+                <div class="menu-card" onclick="goToPage('discipline')">
+                    <div class="menu-icon" style="color: var(--danger); background-color: rgba(239, 68, 68, 0.15);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="menu-text"><h3>مسائل انضباطی</h3><p>مشاهده کوییز صفرها</p></div>
+                </div>
+                <div class="menu-card" onclick="goToPage('rewards')">
+                    <div class="menu-icon" style="color: #eab308; background-color: rgba(234, 179, 8, 0.15);"><i class="fa-solid fa-star"></i></div>
+                    <div class="menu-text"><h3>نمرات تشویقی</h3><p>مشاهده امتیازها</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. دانش‌آموزان -->
+        <div id="page-students" class="page">
+            <div class="page-header">
+                <h2 class="page-title">لیست دانش‌آموزان</h2>
+                <button class="btn-back" onclick="goToPage('menu')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <div class="table-container">
+                <table><thead><tr><th>نام</th><th>نام خانوادگی</th><th>شماره</th><th>عملیات</th></tr></thead><tbody id="table-students"></tbody></table>
+            </div>
+        </div>
+
+        <!-- صفحه اطلاعات کامل دانش‌آموز -->
+        <div id="page-student-info" class="page">
+            <div class="page-header">
+                <h2 class="page-title">اطلاعات کامل دانش‌آموز</h2>
+                <button class="btn-back" onclick="goToPage('students')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <div id="student-info-content" style="max-height: 75vh; overflow-y: auto; padding-left: 10px;"></div>
+        </div>
+
+        <!-- 2. تکالیف -->
+        <div id="page-homework" class="page">
+            <div class="page-header">
+                <h2 class="page-title">مدیریت تکالیف</h2>
+                <button class="btn-back" onclick="goToPage('menu')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <h3 style="margin-bottom: 15px; color: var(--text-muted); font-size: 15px;">تکالیف ثبت شده:</h3>
+            <div id="homework-list-container"></div>
+        </div>
+
+        <div id="page-homework-details" class="page">
+            <div class="page-header">
+                <h2 class="page-title" id="hd-title">جزئیات</h2>
+                <button class="btn-back" onclick="goToPage('homework')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <div id="hd-details-content"></div>
+        </div>
+
+        <!-- 3. حضور و غیاب -->
+        <div id="page-attendance" class="page">
+            <div class="page-header">
+                <h2 class="page-title">حضور و غیاب</h2>
+                <button class="btn-back" onclick="goToPage('menu')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <h3 style="margin-bottom: 15px; color: var(--text-muted); font-size: 15px;">جلسات ثبت شده:</h3>
+            <div id="attendance-list-container"></div>
+        </div>
+
+        <div id="page-attendance-details" class="page">
+            <div class="page-header">
+                <h2 class="page-title" id="ad-title">جزئیات</h2>
+                <button class="btn-back" onclick="goToPage('attendance')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <div id="ad-details-content"></div>
+        </div>
+
+        <!-- 4. کوییزها -->
+        <div id="page-quizzes" class="page">
+            <div class="page-header">
+                <h2 class="page-title">مدیریت کوییزها</h2>
+                <button class="btn-back" onclick="goToPage('menu')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <h3 style="margin-bottom: 15px; color: var(--text-muted); font-size: 15px;">کوییزهای ثبت شده:</h3>
+            <div id="quiz-list-container"></div>
+        </div>
+
+        <div id="page-quiz-details" class="page">
+            <div class="page-header">
+                <h2 class="page-title" id="qd-title">جزئیات</h2>
+                <button class="btn-back" onclick="goToPage('quizzes')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <div id="qd-details-content"></div>
+        </div>
+
+        <!-- 5. انضباطی -->
+        <div id="page-discipline" class="page">
+            <div class="page-header">
+                <h2 class="page-title">مسائل انضباطی (کوییز صفر)</h2>
+                <button class="btn-back" onclick="goToPage('menu')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <div class="table-container">
+                <table><thead><tr><th>دانش‌آموز</th><th>تاریخ</th><th>وضعیت</th></tr></thead><tbody id="table-discipline"></tbody></table>
+            </div>
+        </div>
+
+        <!-- 6. تشویقی -->
+        <div id="page-rewards" class="page">
+            <div class="page-header">
+                <h2 class="page-title">نمرات تشویقی</h2>
+                <button class="btn-back" onclick="goToPage('menu')"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+            </div>
+            <div class="table-container">
+                <table><thead><tr><th>دانش‌آموز</th><th>نمره</th><th>تاریخ</th><th>وضعیت</th></tr></thead><tbody id="table-rewards"></tbody></table>
+            </div>
+        </div>
+
+        <!-- فوتر -->
+        <div class="footer">
+            <span>ساخته شده توسط:</span>
+            <span class="creator-name">امیرحسین چوپانی</span>
+            <div class="school-info">سال تحصیلی ۱۴۰۵ تا ۱۴۰۶ دبیرستان کسایی</div>
+        </div>
+
+    </div>
+
+    <script>
+        // گرفتن اطلاعات از فایل داده‌ای (اگر داده‌ای نبود، برنامه خالی می‌مونه)
+        let db = { students: [], homeworks: [], attendance: [], quizzes: [], discipline: [], rewards: [] };
+        
+        // تلاش برای لود کردن اطلاعات از فایل data.json
+        fetch('data.json')
+            .then(response => {
+                if (!response.ok) throw new Error('فایل data.json یافت نشد');
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.students) {
+                    db = data;
+                    renderAll();
+                }
+            })
+            .catch(error => {
+                console.warn('اطلاعات از فایل خوانده نشد:', error);
+                // اگر فایل نبود، صفحه خالی نمایش داده می‌شود
+                renderAll();
+            });
+
+        function goToPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // 1. دانش‌آموزان (بدون دکمه حذف، فقط مشاهده)
+        function renderStudents() {
+            const tbody = document.getElementById('table-students'); tbody.innerHTML = '';
+            if (db.students.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">خالی</td></tr>'; return; }
+            const sorted = [...db.students].sort((a,b) => (a.family || '').localeCompare(b.family || '', 'fa'));
+            sorted.forEach(s => {
+                tbody.innerHTML += `<tr>
+                    <td>${s.name}</td>
+                    <td>${s.family}</td>
+                    <td>${s.id}</td>
+                    <td><button class="btn-action" onclick="showStudentInfo('${s.id}')">مشاهده اطلاعات</button></td>
+                </tr>`;
+            });
+        }
+
+        // مشاهده اطلاعات کامل (فقط خواندنی)
+        function showStudentInfo(studentId) {
+            const student = db.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const homeworks = [];
+            db.homeworks.forEach(hw => {
+                const rec = hw.records.find(r => r.studentId === studentId);
+                if (rec) homeworks.push({ title: hw.title, date: hw.date, status: rec.status });
+            });
+
+            const attendances = [];
+            db.attendance.forEach(att => {
+                const rec = att.records.find(r => r.studentId === studentId);
+                if (rec && rec.status === 'غایب') attendances.push({ date: att.date });
+            });
+
+            const quizzes = [];
+            db.quizzes.forEach(q => {
+                const rec = q.records.find(r => r.studentId === studentId);
+                if (rec) {
+                    quizzes.push({ title: q.title, date: q.date, status: rec.status, score: rec.status === 'غایب' ? '-' : `${rec.score} / ${q.maxScore}` });
+                }
+            });
+
+            const disciplines = [];
+            db.discipline.forEach(d => {
+                if (d.studentId === studentId) disciplines.push({ date: d.date, status: d.status });
+            });
+
+            const rewards = [];
+            db.rewards.forEach(r => {
+                if (r.studentId === studentId) rewards.push({ date: r.date, score: r.score, status: r.status });
+            });
+
+            let html = `<div class="student-profile"><h2>${student.name} ${student.family}</h2><p>شماره دانش‌آموزی: ${student.id}</p></div>`;
+
+            html += `<div class="profile-section"><h3><i class="fa-solid fa-book"></i> تکالیف</h3>`;
+            if (homeworks.length === 0) html += `<p style="color: var(--text-muted); font-size: 13px;">هیچ تکلیفی ثبت نشده.</p>`;
+            else {
+                html += `<div class="table-container"><table><thead><tr><th>عنوان</th><th>تاریخ</th><th>وضعیت</th></tr></thead><tbody>`;
+                homeworks.forEach(hw => { html += `<tr><td>${hw.title}</td><td>${hw.date}</td><td>${hw.status}</td></tr>`; });
+                html += `</tbody></table></div>`;
+            }
+            html += `</div>`;
+
+            html += `<div class="profile-section"><h3><i class="fa-solid fa-clipboard-user"></i> غیبت‌ها</h3>`;
+            if (attendances.length === 0) html += `<p style="color: var(--text-muted); font-size: 13px;">هیچ غیبتی ثبت نشده.</p>`;
+            else {
+                html += `<div class="table-container"><table><thead><tr><th>تاریخ</th></tr></thead><tbody>`;
+                attendances.forEach(att => { html += `<tr><td>${att.date}</td></tr>`; });
+                html += `</tbody></table></div>`;
+            }
+            html += `</div>`;
+
+            html += `<div class="profile-section"><h3><i class="fa-solid fa-file-pen"></i> کوییزها</h3>`;
+            if (quizzes.length === 0) html += `<p style="color: var(--text-muted); font-size: 13px;">هیچ کوییز ثبت نشده.</p>`;
+            else {
+                html += `<div class="table-container"><table><thead><tr><th>عنوان</th><th>تاریخ</th><th>نمره</th><th>وضعیت</th></tr></thead><tbody>`;
+                quizzes.forEach(q => { html += `<tr><td>${q.title}</td><td>${q.date}</td><td>${q.score}</td><td>${q.status}</td></tr>`; });
+                html += `</tbody></table></div>`;
+            }
+            html += `</div>`;
+
+            html += `<div class="profile-section"><h3><i class="fa-solid fa-triangle-exclamation"></i> مسائل انضباطی (کوییز صفر)</h3>`;
+            if (disciplines.length === 0) html += `<p style="color: var(--text-muted); font-size: 13px;">هیچ موردی ثبت نشده.</p>`;
+            else {
+                html += `<div class="table-container"><table><thead><tr><th>تاریخ</th><th>وضعیت</th></tr></thead><tbody>`;
+                disciplines.forEach(d => { html += `<tr><td>${d.date}</td><td>${d.status}</td></tr>`; });
+                html += `</tbody></table></div>`;
+            }
+            html += `</div>`;
+
+            html += `<div class="profile-section"><h3><i class="fa-solid fa-star"></i> نمرات تشویقی</h3>`;
+            if (rewards.length === 0) html += `<p style="color: var(--text-muted); font-size: 13px;">هیچ تشویقی ثبت نشده.</p>`;
+            else {
+                html += `<div class="table-container"><table><thead><tr><th>تاریخ</th><th>نمره</th><th>وضعیت</th></tr></thead><tbody>`;
+                rewards.forEach(r => { html += `<tr><td>${r.date}</td><td>${r.score}+</td><td>${r.status}</td></tr>`; });
+                html += `</tbody></table></div>`;
+            }
+            html += `</div>`;
+
+            document.getElementById('student-info-content').innerHTML = html;
+            goToPage('student-info');
+        }
+
+        // 2. تکالیف (نمایش لیست)
+        function renderHomeworks() {
+            const container = document.getElementById('homework-list-container'); container.innerHTML = '';
+            if (db.homeworks.length === 0) { container.innerHTML = '<div class="empty-state">خالی</div>'; return; }
+            [...db.homeworks].reverse().forEach(hw => {
+                container.innerHTML += `<div class="session-row"><div class="session-info"><h4>${hw.title}</h4><p>${hw.date}</p></div><button class="btn-action" onclick="showHomeworkDetails(${hw.id})">مشاهده جزئیات</button></div>`;
+            });
+        }
+        function showHomeworkDetails(hwId) {
+            const hw = db.homeworks.find(h => h.id === hwId); if(!hw) return;
+            document.getElementById('hd-title').innerText = hw.title;
+            let html = `<div class="table-container"><table><thead><tr><th>نام</th><th>وضعیت</th></tr></thead><tbody>`;
+            [...hw.records].sort((a,b) => { const sA = db.students.find(st => st.id === a.studentId) || {family:''}; const sB = db.students.find(st => st.id === b.studentId) || {family:''}; return sA.family.localeCompare(sB.family, 'fa'); }).forEach(rec => {
+                const s = db.students.find(st => st.id === rec.studentId) || {name:''};
+                html += `<tr><td>${s.name} ${s.family}</td><td>${rec.status}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+            document.getElementById('hd-details-content').innerHTML = html; goToPage('homework-details');
+        }
+
+        // 3. حضور و غیاب (نمایش لیست)
+        function renderAttendances() {
+            const container = document.getElementById('attendance-list-container'); container.innerHTML = '';
+            if (db.attendance.length === 0) { container.innerHTML = '<div class="empty-state">خالی</div>'; return; }
+            [...db.attendance].reverse().forEach(att => {
+                container.innerHTML += `<div class="session-row"><div class="session-info"><h4>جلسه حضور و غیاب</h4><p>${att.date}</p></div><button class="btn-action" onclick="showAttendanceDetails(${att.id})">مشاهده جزئیات</button></div>`;
+            });
+        }
+        function showAttendanceDetails(attId) {
+            const att = db.attendance.find(a => a.id === attId); if(!att) return;
+            document.getElementById('ad-title').innerText = 'جزئیات حضور و غیاب';
+            let html = `<div class="table-container"><table><thead><tr><th>نام</th><th>وضعیت</th></tr></thead><tbody>`;
+            [...att.records].sort((a,b) => { const sA = db.students.find(st => st.id === a.studentId) || {family:''}; const sB = db.students.find(st => st.id === b.studentId) || {family:''}; return sA.family.localeCompare(sB.family, 'fa'); }).forEach(rec => {
+                const s = db.students.find(st => st.id === rec.studentId) || {name:''};
+                html += `<tr><td>${s.name} ${s.family}</td><td>${rec.status}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+            document.getElementById('ad-details-content').innerHTML = html; goToPage('attendance-details');
+        }
+
+        // 4. کوییزها (نمایش لیست)
+        function renderQuizzes() {
+            const container = document.getElementById('quiz-list-container'); container.innerHTML = '';
+            if (db.quizzes.length === 0) { container.innerHTML = '<div class="empty-state">خالی</div>'; return; }
+            [...db.quizzes].reverse().forEach(q => {
+                container.innerHTML += `<div class="session-row"><div class="session-info"><h4>${q.title} (از ${q.maxScore})</h4><p>${q.date}</p></div><button class="btn-action" onclick="showQuizDetails(${q.id})">مشاهده جزئیات</button></div>`;
+            });
+        }
+        function showQuizDetails(quizId) {
+            const quiz = db.quizzes.find(q => q.id === quizId); if(!quiz) return;
+            document.getElementById('qd-title').innerText = `${quiz.title} (از ${quiz.maxScore})`;
+            let html = `<div class="table-container"><table><thead><tr><th>نام</th><th>وضعیت</th><th>نمره</th></tr></thead><tbody>`;
+            [...quiz.records].sort((a,b) => { const sA = db.students.find(st => st.id === a.studentId) || {family:''}; const sB = db.students.find(st => st.id === b.studentId) || {family:''}; return sA.family.localeCompare(sB.family, 'fa'); }).forEach(rec => {
+                const s = db.students.find(st => st.id === rec.studentId) || {name:''};
+                html += `<tr><td>${s.name} ${s.family}</td><td>${rec.status}</td><td>${rec.status === 'غایب' ? '-' : rec.score + ' / ' + quiz.maxScore}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+            document.getElementById('qd-details-content').innerHTML = html; goToPage('quiz-details');
+        }
+
+        // 5. انضباطی (نمایش لیست)
+        function renderDiscipline() {
+            const tbody = document.getElementById('table-discipline'); tbody.innerHTML = '';
+            if (db.discipline.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="empty-state">خالی</td></tr>'; return; }
+            db.discipline.slice().reverse().forEach(d => {
+                const s = db.students.find(st => st.id === d.studentId) || { name: 'نامشخص', family: '' };
+                const isDeleted = d.status === 'پاک شده (با اثر)';
+                let statusHtml = isDeleted ? '<span style="color: var(--text-muted);">پاک شده</span>' : '<span style="color: var(--danger); font-weight: bold;">کوییز صفر</span>';
+                tbody.innerHTML += `<tr><td>${s.name} ${s.family}</td><td>${d.date}</td><td>${statusHtml}</td></tr>`;
+            });
+        }
+
+        // 6. تشویقی (نمایش لیست)
+        function renderRewards() {
+            const tbody = document.getElementById('table-rewards'); tbody.innerHTML = '';
+            if (db.rewards.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">خالی</td></tr>'; return; }
+            db.rewards.slice().reverse().forEach(r => {
+                const s = db.students.find(st => st.id === r.studentId) || { name: 'نامشخص', family: '' };
+                const isDeleted = r.status === 'پاک شده (با اثر)';
+                let scoreHtml = isDeleted ? `<span style="color: var(--text-muted); text-decoration: line-through;">${r.score}+</span>` : `<span style="color: var(--success); font-weight: bold;">${r.score}+</span>`;
+                tbody.innerHTML += `<tr><td>${s.name} ${s.family}</td><td>${scoreHtml}</td><td>${r.date}</td><td>${r.status}</td></tr>`;
+            });
+        }
+
+        function renderAll() {
+            renderStudents(); renderHomeworks(); renderAttendances(); renderQuizzes();
+            renderDiscipline(); renderRewards();
+        }
+
+        // اجرای اولیه
+        renderAll();
+    </script>
+</body>
+</html>
